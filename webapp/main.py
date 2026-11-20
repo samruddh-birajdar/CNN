@@ -1,5 +1,8 @@
 import base64
 import os
+import tempfile
+import urllib.request
+from pathlib import Path
 import cv2
 import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, File, UploadFile
@@ -16,10 +19,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "models", "Final_Crack_Detection_Model.keras")
-model = load_model(MODEL_PATH)
-print(f"Model loaded successfully from: {MODEL_PATH}")
+BASE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_MODEL_PATH = BASE_DIR / "models" / "Final_Crack_Detection_Model.keras"
+MODEL_PATH = Path(os.getenv("MODEL_PATH", str(DEFAULT_MODEL_PATH)))
+MODEL_URL = os.getenv("MODEL_URL", "").strip()
+
+
+def ensure_model_file(model_path: Path, model_url: str) -> Path:
+    if model_path.exists() and model_path.stat().st_size > 0:
+        return model_path
+
+    if not model_url:
+        raise FileNotFoundError(
+            f"Model file not found at {model_path} and MODEL_URL is not set."
+        )
+
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=model_path.parent, delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+
+    try:
+        urllib.request.urlretrieve(model_url, tmp_path)
+        if tmp_path.stat().st_size == 0:
+            raise ValueError("Downloaded model file is empty.")
+        tmp_path.replace(model_path)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
+
+    return model_path
+
+
+resolved_model_path = ensure_model_file(MODEL_PATH, MODEL_URL)
+model = load_model(resolved_model_path)
+print(f"Model loaded successfully from: {resolved_model_path}")
 
 
 def predict_frame(frame: np.ndarray, threshold: float = 0.5) -> tuple[str, float]:
