@@ -1,0 +1,18 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Datasets & Models (Do NOT push these to GitHub)
+CrackDataset/
+CrackDataset.zip
+Processed_CrackDataset/
+models/*.keras
+
+# Node.js
+node_modules/
+frontend/dist/
+frontend/.env
+
+# OS
+.DS_Store
