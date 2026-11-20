@@ -3,17 +3,24 @@ import os
 import tempfile
 import urllib.request
 from pathlib import Path
+
 import cv2
 import numpy as np
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from tensorflow.keras.models import load_model
 
-app = FastAPI()
+app = FastAPI(title="Crack Detector API")
+
+ALLOWED_ORIGINS = [
+    "https://crack-detecter.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

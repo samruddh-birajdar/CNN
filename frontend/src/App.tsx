@@ -4,10 +4,10 @@ type Mode = 'upload' | 'live'
 type Result = { label: string; confidence: number } | null
 
 // --- DEPLOYMENT CONFIGURATION ---
-// Reads from Vercel environment variable, falls back to localhost for local dev
-const RAW_API = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`
-const API_HTTP = RAW_API.endsWith('/') ? RAW_API.slice(0, -1) : RAW_API
-const API_WS = API_HTTP.replace('https://', 'wss://').replace('http://', 'ws://') + '/ws/crack'
+// Reads VITE_API_URL at build time on Vercel, or falls back to local backend in dev
+const RAW_API = (import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`).trim()
+const API_HTTP = RAW_API.replace(/\/+$/, '')
+const API_WS = API_HTTP.replace(/^https:\/\//i, 'wss://').replace(/^http:\/\//i, 'ws://') + '/ws/crack'
 
 const TICKS = 40
 
