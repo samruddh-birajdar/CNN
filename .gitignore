@@ -5,4 +5,5 @@ Processed_CrackDataset/
 __pycache__/
 node_modules/
 frontend/dist/
-*.keras
+*.keras.env
+.env
