@@ -23,8 +23,6 @@ const RED = '#d9392b'
 const GREEN = '#12805c'
 
 const css = `
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;500;600;700;800&display=swap');
-
 .app { --ink:#101216; --muted:#6b7078; --line:#d5d7db; --paper:#ecedef; --card:#f7f7f8;
   min-height:100vh; box-sizing:border-box; padding:28px clamp(16px,4vw,48px) 40px;
   background:var(--paper); color:var(--ink);
