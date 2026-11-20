@@ -3,9 +3,12 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 type Mode = 'upload' | 'live'
 type Result = { label: string; confidence: number } | null
 
-const HOST = window.location.hostname
-const API_HTTP = `http://${HOST}:8000`
-const API_WS = `ws://${HOST}:8000/ws/crack`
+// --- DEPLOYMENT CONFIGURATION ---
+// Reads from Vercel environment variable, falls back to localhost for local dev
+const RAW_API = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`
+const API_HTTP = RAW_API.endsWith('/') ? RAW_API.slice(0, -1) : RAW_API
+const API_WS = API_HTTP.replace('https://', 'wss://').replace('http://', 'ws://') + '/ws/crack'
+
 const TICKS = 40
 
 // "Crack Detected (98.7%)" -> { label, confidence }
@@ -145,7 +148,7 @@ function App() {
   const wsRef = useRef<WebSocket | null>(null)
   const intervalRef = useRef<number | null>(null)
   const thresholdRef = useRef(0.5)
-  const inflightRef = useRef(0) // timestamp of last unanswered frame, 0 = none
+  const inflightRef = useRef(0)
   const startingRef = useRef(false)
   const [streaming, setStreaming] = useState(false)
   const [threshold, setThreshold] = useState(0.5)
@@ -167,7 +170,7 @@ function App() {
     setStreaming(false)
   }
 
-  useEffect(() => stopCamera, []) // cleanup on unmount
+  useEffect(() => stopCamera, [])
 
   const startCamera = async () => {
     if (startingRef.current) return
@@ -194,14 +197,13 @@ function App() {
       if (parsed) { setLiveResult(parsed); setLiveError(null) }
       else setLiveError(e.data)
     }
-    ws.onerror = () => setLiveError('Cannot reach the server on port 8000.')
+    ws.onerror = () => setLiveError('Cannot reach the server.')
     ws.onclose = () => stopCamera()
     ws.onopen = () => {
       intervalRef.current = window.setInterval(() => {
         const video = videoRef.current
         const canvas = canvasRef.current
         if (!video || !canvas || ws.readyState !== WebSocket.OPEN || !video.videoWidth) return
-        // skip if the last frame hasn't been answered yet (stale after 3s)
         if (inflightRef.current && Date.now() - inflightRef.current < 3000) return
         canvas.width = video.videoWidth
         canvas.height = video.videoHeight
@@ -246,7 +248,7 @@ function App() {
       if (data.error) setUploadError(data.error)
       else setUploadResult({ label: data.label, confidence: Number(data.confidence) })
     } catch {
-      setUploadError('Could not reach the server. Check that the API is running on port 8000.')
+      setUploadError('Could not reach the server. Check that the API is running.')
     } finally {
       setIsUploading(false)
     }
@@ -254,7 +256,6 @@ function App() {
 
   const switchMode = (m: Mode) => { if (m !== mode) { stopCamera(); setMode(m) } }
 
-  // stage tone follows the verdict
   const activeResult = mode === 'upload' ? uploadResult : liveResult
   const tone = activeResult ? (isCrack(activeResult.label) ? RED : GREEN) : 'rgba(255,255,255,.55)'
   const scanning = mode === 'upload' ? isUploading : streaming

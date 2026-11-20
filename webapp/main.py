@@ -9,9 +9,11 @@ from tensorflow.keras.models import load_model
 app = FastAPI()
 
 # --- CORS Middleware ---
+# Allows Vercel frontend to talk to Render backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], # In a highly secure app, replace "*" with your Vercel URL
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -30,7 +32,6 @@ async def crack_websocket(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
-            # Receive JSON instead of raw text
             data = await websocket.receive_json()
             base64_str = data.get("image")
             threshold = float(data.get("threshold", 0.5))
@@ -64,22 +65,17 @@ async def crack_websocket(websocket: WebSocket):
 @app.post("/api/predict-upload")
 async def predict_upload(file: UploadFile = File(...)):
     try:
-        # Read the uploaded file into memory
         contents = await file.read()
-        
-        # Decode it into an OpenCV image
         nparr = np.frombuffer(contents, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if frame is None:
             return {"error": "Could not decode image"}
 
-        # Preprocess (matches training and webcam)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         x = cv2.resize(rgb, (128, 128)).astype(np.float32) / 255.0
         x = np.expand_dims(x, axis=0)
 
-        # Predict
         pred = float(model.predict(x, verbose=0)[0][0])
         
         if pred > 0.5:

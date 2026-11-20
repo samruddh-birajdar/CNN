@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: cnn-crack-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    # Critical: Must bind to 0.0.0.0 and the PORT Render gives you
+    startCommand: uvicorn webapp.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
